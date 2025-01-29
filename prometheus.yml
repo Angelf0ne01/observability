@@ -1,0 +1,14 @@
+global:
+  scrape_interval: 15s  # Frecuencia para recolectar métricas de los targets.
+
+scrape_configs:
+  # Monitorear Prometheus
+  # - job_name: 'prometheus'
+  #   static_configs:
+  #     - targets: ['localhost:9090']
+
+  # Monitorear el servicio en el puerto 4040
+  - job_name: 'custom_service'
+    metrics_path: '/v1/metrics'  # Especificar el endpoint donde se exponen las métricas.
+    static_configs:
+      - targets: ['host.docker.internal:4080']  # Cambia `host.docker.internal` si el servicio está en otra máquina.

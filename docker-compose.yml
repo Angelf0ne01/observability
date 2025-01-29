@@ -1,0 +1,85 @@
+services:
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    ports:
+      - "8080:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana          
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - tempo-network
+  
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml  # Monte el archivo de configuración.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9090:9090"  # Exponer el puerto 9090 para Prometheus.
+    restart: always
+    networks:
+      - tempo-network
+
+  loki:
+    image: grafana/loki:2.9.10
+    container_name: loki
+    ports:
+      - "3100:3100" # Loki API
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - tempo-network
+
+  tempo:
+    image: grafana/tempo:latest
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "14268:14268"  # jaeger ingest
+      - "3200:3200"   # tempo
+      - "9095:9095" # tempo grpc
+      - "4317:4317"  # otlp grpc
+      - "4318:4318"  # otlp http
+      - "9411:9411"   # zipkin
+    volumes:
+      - ./tempo.yaml:/etc/tempo/tempo.yaml
+      - ./tempo-data:/var/tempo
+    command: -config.file=/etc/tempo/tempo.yaml
+    networks:
+      - tempo-network
+
+  nginx:
+    image: nginx:latest
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8083:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - tempo
+      - loki
+    networks:
+      - tempo-network
+    links:
+      - tempo:tempo
+      - loki:loki
+
+volumes:
+  grafana-storage: {}
+
+networks:
+  tempo-network:
+    driver: bridge
