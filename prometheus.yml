@@ -12,3 +12,8 @@ scrape_configs:
     metrics_path: '/v1/metrics'  # Especificar el endpoint donde se exponen las métricas.
     static_configs:
       - targets: ['host.docker.internal:4080']  # Cambia `host.docker.internal` si el servicio está en otra máquina.
+  - job_name: 'tempo'
+    metrics_path: '/metrics'  # Especificar el endpoint donde se exponen las métricas.
+    static_configs:
+      - targets: ['host.docker.internal:3200']  # Cambia `host.docker.internal` si el servicio está en otra máquina.
+

@@ -28,7 +28,7 @@ datasources:
   - name: "Tempo"
     type: "tempo"
     access: "proxy"
-    url: "http://tempo:3100"
+    url: "http://tempo:3200"
     basicAuth: false
     isDefault: false
     jsonData:      
@@ -43,7 +43,10 @@ datasources:
       tracesToLogsV2:
         customQuery: true
         datasourceUid: "P8E80F9AEF21F6940"  # ID manual de Loki
-        query: '{env="development"} |= `$${__span.traceId}`'
+        #query: '{env="development"} |= `$${__span.traceId}`'
+        query: '{env="development"} |= `$${__span.traceId}` |= `$${__span.spanId}`'
+        spanStartTimeShift: "-15s"   # resta 15 segundos al inicio del span
+        spanEndTimeShift: "30s"      # agrega 30 segundos al fin del span
         tags:
           - key: "trace_id"
             value: "trace_id"

@@ -13,6 +13,9 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=https://storage.googleapis.com/integration-artifacts/grafana-exploretraces-app/grafana-exploretraces-app-latest.zip;grafana-traces-app,pyroscope-panel
+      - GF_FEATURE_TOGGLES_ENABLE=tempoSearch tempoBackendSearch tempoServiceGraph tempoApmTable traceToMetrics newTraceViewHeader metricsSummary correlations traceToProfiles tracesEmbeddedFlameGraph
+
     networks:
       - tempo-network
   
@@ -21,6 +24,11 @@ services:
     container_name: prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml  # Monte el archivo de configuración.
+    command:      
+      - --web.enable-remote-write-receiver
+      - --enable-feature=native-histograms
+      - --enable-feature=exemplar-storage      
+      - --config.file=/etc/prometheus/prometheus.yml
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -43,7 +51,8 @@ services:
       - tempo-network
 
   tempo:
-    image: grafana/tempo:latest
+    container_name: tempo
+    image: grafana/tempo:2.7.2
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -56,7 +65,9 @@ services:
     volumes:
       - ./tempo.yaml:/etc/tempo/tempo.yaml
       - ./tempo-data:/var/tempo
-    command: -config.file=/etc/tempo/tempo.yaml
+    command: 
+    - "-config.file=/etc/tempo/tempo.yaml"
+    - "--auth.enabled=false"
     networks:
       - tempo-network
 
@@ -76,6 +87,37 @@ services:
     links:
       - tempo:tempo
       - loki:loki
+
+
+
+  alloy:
+    image: grafana/alloy
+    container_name: alloy
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy  
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    ports:            
+      - "12345:12345"
+      - "12347:12347"
+      - "6832:6832"
+      - "55679:55679"
+      - "9091:9091"
+    networks:
+      - tempo-network
+
+  # jaeger:
+  #   image: jaegertracing/all-in-one:1.55
+  #   container_name: jaeger
+  #   ports:
+  #     - "16686:16686"   # Jaeger UI
+  #     - "14268:14268"   # HTTP collector (OTLP/HTTP)
+  #     - "14250:14250"   # gRPC collector (OTLP/gRPC)
+  #     - "6831:6831/udp" # UDP for agents
+  #     - "4317:4317"     # OTLP gRPC (OpenTelemetry SDK default)
+  #     - "4318:4318"     # OTLP HTTP
+  #   environment:
+  #     COLLECTOR_OTLP_ENABLED: "true"
+  #     LOG_LEVEL: debug
 
 volumes:
   grafana-storage: {}
