@@ -60,7 +60,8 @@ services:
       - "3200:3200"   # tempo
       - "9095:9095" # tempo grpc
       - "9411:9411"   # zipkin
-      # OTLP ports removed - use Alloy as the entry point instead
+      - "24317:4317"  # otlp grpc (internal only, mapped to avoid conflict with Alloy)
+      - "24318:4318"  # otlp http (internal only, mapped to avoid conflict with Alloy)
     volumes:
       - ./tempo.yaml:/etc/tempo/tempo.yaml
       - ./tempo-data:/var/tempo
@@ -101,8 +102,8 @@ services:
       - "6832:6832"
       - "55679:55679"
       - "9091:9091"
-      - "14317:4317"  # OTLP gRPC (mapped to avoid conflict with Tempo)
-      - "14318:4318"  # OTLP HTTP (mapped to avoid conflict with Tempo)
+      - "4317:4317"  # OTLP gRPC (standard port)
+      - "4318:4318"  # OTLP HTTP (standard port)
     networks:
       - tempo-network
 
