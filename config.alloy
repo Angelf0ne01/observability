@@ -14,6 +14,40 @@ otelcol.exporter.otlp "tempo" {
   }
 }
 
+// OTLP receiver for logs from backend services
+otelcol.receiver.otlp "backend" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    logs   = [otelcol.processor.attributes.backend_logs.input]
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+// Add resource attributes to logs and hints for Loki label conversion
+otelcol.processor.attributes "backend_logs" {
+  // Add hint to convert resource attributes to Loki labels
+  action {
+    key    = "loki.resource.labels"
+    action = "insert"
+    value  = "service.name, deployment.environment.name"
+  }
+
+  output {
+    logs = [otelcol.exporter.loki.backend.input]
+  }
+}
+
+// Export backend logs to Loki
+otelcol.exporter.loki "backend" {
+  forward_to = [loki.write.loki.receiver]
+}
+
 faro.receiver "faro" {
     server {
       listen_address = "0.0.0.0"
